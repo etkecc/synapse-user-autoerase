@@ -2,6 +2,7 @@ name: CI
 on:
   push:
     branches: [ "main" ]
+    tags: [ "v*" ]
 permissions:
   checks: write
   contents: read
@@ -28,8 +29,10 @@ jobs:
           version: latest
       - name: test
         run: just test
+
   build-release:
     name: Build and Release
+    needs: lint-test
     runs-on: ubuntu-latest
     steps:
       - name: Set up Docker Buildx
@@ -40,9 +43,15 @@ jobs:
           registry: ghcr.io
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
+      - name: Extract metadata (tags, labels) for Docker
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ghcr.io/${{ github.repository }}
       - name: Build and push
         uses: docker/build-push-action@v6
         with:
           platforms: linux/amd64,linux/arm64
           push: true
-          tags: ${{ github.repository }}:latest
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
