@@ -1,10 +1,10 @@
-FROM registry.gitlab.com/etke.cc/base/build AS builder
+FROM ghcr.io/etkecc/base/build AS builder
 
 WORKDIR /app
 COPY . .
 RUN just build
 
-FROM registry.gitlab.com/etke.cc/base/app
+FROM ghcr.io/etkecc/base/app
 
 COPY --from=builder /app/suae /bin/suae
 
