@@ -30,6 +30,8 @@ Check `.env.example` for an example configuration.
 ## Usage
 
 ```bash
+# if you want to run it with docker, do this
+$ docker run --rm --env-file .env ghcr.io/etke-cc/synapse-user-autoerase
 # if you have binary, run it like this
 $ suae
 # if you want to run from source
