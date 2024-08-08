@@ -1,0 +1,260 @@
+package main
+
+import (
+	"encoding/json"
+	"fmt"
+	"io"
+	"log"
+	"net/http"
+	"sort"
+	"strings"
+	"time"
+
+	"github.com/etke-cc/synapse-user-autoerase/internal/config"
+)
+
+// Account is a struct that holds the information about a user account,
+// note that the included fields are only the ones that are needed for this application.
+type Account struct {
+	Name        string `json:"name"`
+	IsGuest     bool   `json:"is_guest"`
+	Admin       bool   `json:"admin"`
+	Deactivated bool   `json:"deactivated"`
+	Locked      bool   `json:"locked"`
+	CreationTs  int64  `json:"creation_ts"`
+}
+
+// AccountsResponse is a struct that holds the response from the Synapse server
+type AccountsResponse struct {
+	Accounts  []*Account `json:"users"`
+	NextToken string     `json:"next_token"`
+	Total     int        `json:"total"`
+}
+
+// DeletedMediaResponse is a struct that holds the response from the Synapse server,
+// note that the included fields are only the ones that are needed for this application.
+type DeletedMediaResponse struct {
+	Total int `json:"total"`
+}
+
+// UserAgent is the user agent that is used for the HTTP requests
+const UserAgent = "Synapse User Auto Erase (library; +https://github.com/etke-cc/synapse-user-autoerase)"
+
+// omitPrefixes is a list of prefixes that should be omitted/ignored from the list of users
+// this list contains most of the common prefixes that are used by bots and bridges.
+// You may extend it by adding more prefixes to the env variable `SUAE_PREFIXES`.
+var omitPrefixes = []string{
+	"@discord_",
+	"@discordbot:",
+	"@emailbot:",
+	"@gmessages_",
+	"@gmessagesbot:",
+	"@googlechat_",
+	"@googlechatbot:",
+	"@heisenbridge:",
+	"@hookshot:",
+	"@instagram_",
+	"@instagrambot:",
+	"@linkedinbot:",
+	"@messenger_",
+	"@messengerbot:",
+	"@reminder:",
+	"@signal_",
+	"@signalbot:",
+	"@skypebridgebot:",
+	"@slack_",
+	"@slackbot:",
+	"@telegram_",
+	"@telegrambot:",
+	"@twitter_",
+	"@twitterbot:",
+	"@wechat_",
+	"@wechatbot:",
+	"@whatsapp_",
+	"@whatsappbot:",
+}
+
+func main() {
+	cfg := loadConfig()
+	log.Println("loading accounts...")
+	accounts, err := loadAccounts(cfg)
+	if err != nil {
+		log.Println("ERROR: ", err)
+	}
+	log.Println("loaded", len(accounts), "accounts, filtering...")
+	accounts = filterAccounts(accounts, cfg.TTL)
+	if len(accounts) == 0 {
+		log.Println("no eligible accounts found")
+		return
+	}
+
+	if cfg.DryRun {
+		dryRun(accounts)
+		return
+	}
+
+	for _, account := range accounts {
+		log.Println("removing", account.Name, "...")
+		if err := deleteAccount(cfg, account); err != nil {
+			log.Println("ERROR: failed to remove account", err)
+			continue
+		}
+		deletedMedia, err := deleteMedia(cfg, account)
+		if err != nil {
+			log.Println("ERROR: failed to remove media", err)
+		}
+		registeredAt := time.Unix(0, account.CreationTs*int64(time.Millisecond))
+		log.Printf("removed %s (registered %d days ago), deleted %d media", account.Name, int(time.Since(registeredAt).Hours()/24), deletedMedia)
+	}
+}
+
+// loadConfig loads the configuration from the environment and validates it
+func loadConfig() *config.Config {
+	cfg := config.New()
+	if cfg.Host == "" {
+		panic("Host is required")
+	}
+	if cfg.Token == "" {
+		panic("Token is required")
+	}
+	if cfg.TTL <= 0 {
+		panic("TTL must be greater than 0")
+	}
+	omitPrefixes = append(omitPrefixes, cfg.Prefixes...)
+	return cfg
+}
+
+// newRequest creates a new HTTP request with the given method, URI, token and optional body
+func newRequest(method, uri, token string, optionalBody ...io.Reader) (*http.Request, error) {
+	var body io.Reader = http.NoBody
+	if len(optionalBody) > 0 {
+		body = optionalBody[0]
+	}
+	req, err := http.NewRequest(method, uri, body)
+	if err != nil {
+		return nil, err
+	}
+	req.Header.Set("Authorization", "Bearer "+token)
+	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("User-Agent", UserAgent)
+	return req, nil
+}
+
+// loadAccounts recursively loads all accounts from the Synapse server,
+// except for guests, admins, deactivated and locked accounts.
+func loadAccounts(cfg *config.Config, nextToken ...string) ([]*Account, error) {
+	from := "0" // default
+	if len(nextToken) > 0 {
+		from = nextToken[0]
+	}
+	uri := fmt.Sprintf("%s/_synapse/admin/v2/users?from=%s&limit=1000&guests=false&admins=false&&deactivated=false&order_by=creation_ts&dir=b", cfg.Host, from)
+	req, err := newRequest(http.MethodGet, uri, cfg.Token)
+	if err != nil {
+		return nil, err
+	}
+	resp, err := http.DefaultClient.Do(req)
+	if err != nil {
+		return nil, err
+	}
+	defer resp.Body.Close()
+	totalAccounts := []*Account{}
+	var accounts *AccountsResponse
+	if err := json.NewDecoder(resp.Body).Decode(&accounts); err != nil {
+		return nil, err
+	}
+	totalAccounts = append(totalAccounts, accounts.Accounts...)
+	if accounts.NextToken == "" {
+		return totalAccounts, nil
+	}
+
+	moreAccounts, err := loadAccounts(cfg, accounts.NextToken)
+	if err != nil {
+		return totalAccounts, err
+	}
+	totalAccounts = append(totalAccounts, moreAccounts...)
+	return totalAccounts, nil
+}
+
+// filterAccounts filters out unwanted accounts
+func filterAccounts(accounts []*Account, ttl int) []*Account {
+	filtered := []*Account{}
+	for _, account := range accounts {
+		if account.IsGuest || account.Admin || account.Deactivated || account.Locked {
+			continue
+		}
+		if filterByName(account.Name) {
+			continue
+		}
+		if filterByTS(account.CreationTs, ttl) {
+			continue
+		}
+		filtered = append(filtered, account)
+	}
+	return filtered
+}
+
+// filterByName returns true if the name should be omitted/ignored
+func filterByName(name string) bool {
+	for _, part := range omitPrefixes {
+		if strings.HasPrefix(name, part) {
+			return true
+		}
+	}
+	return false
+}
+
+// filterByTS returns true if the timestamp is within the TTL
+func filterByTS(ts int64, ttl int) bool {
+	if ttl == 0 {
+		return false
+	}
+	timestamp := time.Unix(0, ts*int64(time.Millisecond))
+	return time.Since(timestamp).Abs().Hours() <= float64(ttl*24)
+}
+
+// deleteAccount deletes the account from the Synapse server
+func deleteAccount(cfg *config.Config, account *Account) error {
+	uri := fmt.Sprintf("%s/_synapse/admin/v1/deactivate/%s", cfg.Host, account.Name)
+	req, err := newRequest(http.MethodPost, uri, cfg.Token, strings.NewReader(`{"erase": true}`))
+	if err != nil {
+		return err
+	}
+	resp, err := http.DefaultClient.Do(req)
+	if err != nil {
+		return err
+	}
+	defer resp.Body.Close()
+	return nil
+}
+
+// deleteMedia deletes the media of the account from the Synapse server
+func deleteMedia(cfg *config.Config, account *Account) (int, error) {
+	uri := fmt.Sprintf("%s/_synapse/admin/v1/users/%s/media", cfg.Host, account.Name)
+	req, err := newRequest(http.MethodDelete, uri, cfg.Token)
+	if err != nil {
+		return 0, err
+	}
+	resp, err := http.DefaultClient.Do(req)
+	if err != nil {
+		return 0, err
+	}
+	defer resp.Body.Close()
+	var deletedMedia *DeletedMediaResponse
+	if err := json.NewDecoder(resp.Body).Decode(&deletedMedia); err != nil {
+		return 0, err
+	}
+	return deletedMedia.Total, nil
+}
+
+// dryRun is a helper function that prints the accounts that would be erased, alongside with the days since registration
+func dryRun(accounts []*Account) {
+	sort.Slice(accounts, func(i, j int) bool {
+		return accounts[i].CreationTs < accounts[j].CreationTs
+	})
+	log.Println(len(accounts), "users left, printing...")
+	for _, account := range accounts {
+		registeredAt := time.Unix(0, account.CreationTs*int64(time.Millisecond))
+		log.Println(account.Name, "registered", int(time.Since(registeredAt).Hours()/24), "days ago")
+	}
+	log.Println("To remove the accounts, set the environment variable SUAE_DRYRUN to false")
+}

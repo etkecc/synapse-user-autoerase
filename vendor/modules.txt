@@ -1,0 +1,4 @@
+# gitlab.com/etke.cc/go/env v1.2.0
+## explicit; go 1.18
+gitlab.com/etke.cc/go/env
+gitlab.com/etke.cc/go/env/dotenv
