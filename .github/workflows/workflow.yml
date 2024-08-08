@@ -48,7 +48,7 @@ jobs:
         uses: docker/metadata-action@v5
         with:
           images: ghcr.io/${{ github.repository }}
-          flavor: latest=${{ github.ref == 'refs/heads/main' }}
+          flavor: latest={{ branch == 'main' }}
 
       - name: Build and push
         uses: docker/build-push-action@v6
