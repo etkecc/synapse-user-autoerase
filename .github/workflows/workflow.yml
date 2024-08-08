@@ -48,6 +48,8 @@ jobs:
         uses: docker/metadata-action@v5
         with:
           images: ghcr.io/${{ github.repository }}
+          flavor: |
+            latest=auto
           tags: |
             latest=${{ github.ref == format('refs/heads/{0}', 'main') }}
 
