@@ -2,13 +2,13 @@
 
 This is a simple script that will erase users from a Synapse server based on specific criteria:
 
-- not admin
-- not guest
+- not an admin
+- not a guest
 - not deactivated
 - not contain a specific string in their MXID
 - not older than a specific threshold in days
 
-It was developed for [etke.cc demo server](https://etke.cc/demo/) for the purpose of cleaning up the user database.
+It was developed for the [etke.cc demo server](https://etke.cc/demo/) for the purpose of cleaning up the user database.
 
 Another purpose of this repo is to be a test stand for migrating our [gitlab repos](https://gitlab.com/etke.cc) to [github](https://github.com/etke-cc)
 
