@@ -1,18 +1,15 @@
-name: golangci-lint
+name: Go
 on:
   push:
-    branches:
-      - main
-      - master
+    branches: [ "main" ]
   pull_request:
-
+    branches: [ "main" ]
 permissions:
   checks: write
   contents: read
   pull-requests: read
-
 jobs:
-  golangci:
+  test:
     name: lint
     runs-on: ubuntu-latest
     steps:
@@ -20,7 +17,12 @@ jobs:
       - uses: actions/setup-go@v5
         with:
           go-version: stable
-      - name: golangci-lint
+      - uses: ConorMacBride/install-package@v1
+        with:
+          apt: just
+      - name: lint
         uses: golangci/golangci-lint-action@v6
         with:
           version: latest
+      - name: test
+        run: just test
