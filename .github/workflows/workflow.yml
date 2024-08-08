@@ -51,8 +51,7 @@ jobs:
           flavor: |
             latest={{ eq .GitHub.RefName "main" }}
             tags={{ if eq .GitHub.EventName "push" }}{{ if eq .GitHub.RefType "tag" }}{{ .Ref }}{{ else if eq .GitHub.RefType "branch" }}{{ .Ref }}{{ end }}{{ end }}
-          flavor: latest=${{ github.ref == 'refs/heads/main' }} \
-                  tags=${{ github.event_name == 'push' && github.ref_type == 'tag' ? github.ref : github.ref_name }}
+          flavor: latest=${{ github.ref == 'refs/heads/main' }}
 
       - name: Build and push
         uses: docker/build-push-action@v6
