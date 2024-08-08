@@ -1,4 +1,4 @@
-name: CI
+name: CI (main and tags)
 on:
   push:
     branches: [ "main" ]
@@ -32,7 +32,6 @@ jobs:
 
   build-publish:
     name: Build and Publish
-    needs: lint-test
     runs-on: ubuntu-latest
     steps:
       - name: Set up Docker Buildx
