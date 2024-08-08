@@ -10,7 +10,7 @@ This is a simple script that will erase users from a Synapse server based on spe
 
 It was developed for the [etke.cc demo server](https://etke.cc/demo/) for the purpose of cleaning up the user database.
 
-Another purpose of this repo is to be a test stand for migrating our [gitlab repos](https://gitlab.com/etke.cc) to [github](https://github.com/etke-cc)
+Another purpose of this repo is to be a test stand for migrating our [gitlab repos](https://gitlab.com/etke.cc) to [github](https://github.com/etkecc)
 
 Don't expect this to be a full-featured tool, it's just a simple script that does one thing.
 
@@ -31,9 +31,9 @@ Check `.env.example` for an example configuration.
 
 ```bash
 # if you want to run it with docker, do this
-$ docker run --rm --env-file .env ghcr.io/etke-cc/synapse-user-autoerase
+$ docker run --rm --env-file .env ghcr.io/etkecc/synapse-user-autoerase
 # if you have binary, run it like this
-$ suae
+$ synapse-user-auto-erase
 # if you want to run from source
 $ just run
 ```

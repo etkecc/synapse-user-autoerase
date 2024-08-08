@@ -10,7 +10,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/etke-cc/synapse-user-autoerase/internal/config"
+	"github.com/etkecc/synapse-user-autoerase/internal/config"
 )
 
 // Account is a struct that holds the information about a user account,
@@ -38,7 +38,7 @@ type DeletedMediaResponse struct {
 }
 
 // UserAgent is the user agent that is used for the HTTP requests
-const UserAgent = "Synapse User Auto Erase (library; +https://github.com/etke-cc/synapse-user-autoerase)"
+const UserAgent = "Synapse User Auto Erase (library; +https://github.com/etkecc/synapse-user-autoerase)"
 
 // omitPrefixes is a list of prefixes that should be omitted/ignored from the list of users
 // this list contains most of the common prefixes that are used by bots and bridges.

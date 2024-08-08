@@ -1,4 +1,4 @@
-module github.com/etke-cc/synapse-user-autoerase
+module github.com/etkecc/synapse-user-autoerase
 
 go 1.22.5
 
