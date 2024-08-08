@@ -5,18 +5,17 @@ on:
     tags: [ "v*" ]
 permissions:
   checks: write
-  contents: read
+  contents: write
   packages: write
   pull-requests: read
 jobs:
   lint-test:
     name: Lint and Test
     runs-on: ubuntu-latest
+    if: ${{ !startsWith(github.ref, 'refs/tags/') }}
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-go@v5
-        with:
-          go-version: stable
       - name: add just repo
         run: |
           wget -qO - 'https://proget.makedeb.org/debian-feeds/prebuilt-mpr.pub' | gpg --dearmor | sudo tee /usr/share/keyrings/prebuilt-mpr-archive-keyring.gpg 1> /dev/null
@@ -31,8 +30,8 @@ jobs:
       - name: test
         run: just test
 
-  build-release:
-    name: Build and Release
+  build-publish:
+    name: Build and Publish
     needs: lint-test
     runs-on: ubuntu-latest
     steps:
@@ -52,7 +51,6 @@ jobs:
           tags: |
             type=raw,value=latest,enable=${{ github.ref_name == 'main' }}
             type=semver,pattern={{raw}}
-
       - name: Build and push
         uses: docker/build-push-action@v6
         with:
@@ -60,3 +58,22 @@ jobs:
           push: true
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
+
+  build-release:
+    name: Build and Release
+    needs: lint-test
+    runs-on: ubuntu-latest
+    if: ${{ startsWith(github.ref, 'refs/tags/') }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-go@v5
+      - name: Release
+        uses: goreleaser/goreleaser-action@v6
+        with:
+          version: latest
+          args: release --clean
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
