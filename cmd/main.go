@@ -2,6 +2,7 @@ package main
 
 import (
 	"encoding/json"
+	"flag"
 	"fmt"
 	"io"
 	"log"
@@ -11,34 +12,15 @@ import (
 	"time"
 
 	"github.com/etkecc/synapse-user-autoerase/internal/config"
+	"github.com/etkecc/synapse-user-autoerase/internal/models"
 )
-
-// Account is a struct that holds the information about a user account,
-// note that the included fields are only the ones that are needed for this application.
-type Account struct {
-	Name        string `json:"name"`
-	IsGuest     bool   `json:"is_guest"`
-	Admin       bool   `json:"admin"`
-	Deactivated bool   `json:"deactivated"`
-	Locked      bool   `json:"locked"`
-	CreationTs  int64  `json:"creation_ts"`
-}
-
-// AccountsResponse is a struct that holds the response from the Synapse server
-type AccountsResponse struct {
-	Accounts  []*Account `json:"users"`
-	NextToken string     `json:"next_token"`
-	Total     int        `json:"total"`
-}
-
-// DeletedMediaResponse is a struct that holds the response from the Synapse server,
-// note that the included fields are only the ones that are needed for this application.
-type DeletedMediaResponse struct {
-	Total int `json:"total"`
-}
 
 // UserAgent is the user agent that is used for the HTTP requests
 const UserAgent = "Synapse User Auto Erase (library; +https://github.com/etkecc/synapse-user-autoerase)"
+
+// dryRunMode is a flag that indicates whether the script should only print the accounts that would be erased
+// it takes the value of the environment variable `SUAE_DRYRUN` and can be overridden by the `-dryrun` flag
+var dryRunMode bool
 
 // omitPrefixes is a list of prefixes that should be omitted/ignored from the list of users
 // this list contains most of the common prefixes that are used by bots and bridges.
@@ -76,6 +58,12 @@ var omitPrefixes = []string{
 
 func main() {
 	cfg := loadConfig()
+	dryRunMode = cfg.DryRun
+	flag.BoolVar(&dryRunMode, "dryrun", dryRunMode, "dry run mode (override the SUAE_DRYRUN environment variable)")
+	flag.Parse()
+	if dryRunMode {
+		log.Println("running in dry run mode")
+	}
 	log.Println("loading accounts...")
 	accounts, err := loadAccounts(cfg)
 	if err != nil {
@@ -88,7 +76,7 @@ func main() {
 		return
 	}
 
-	if cfg.DryRun {
+	if dryRunMode {
 		dryRun(accounts)
 		return
 	}
@@ -142,7 +130,7 @@ func newRequest(method, uri, token string, optionalBody ...io.Reader) (*http.Req
 
 // loadAccounts recursively loads all accounts from the Synapse server,
 // except for guests, admins, deactivated and locked accounts.
-func loadAccounts(cfg *config.Config, nextToken ...string) ([]*Account, error) {
+func loadAccounts(cfg *config.Config, nextToken ...string) ([]*models.Account, error) {
 	from := "0" // default
 	if len(nextToken) > 0 {
 		from = nextToken[0]
@@ -157,8 +145,8 @@ func loadAccounts(cfg *config.Config, nextToken ...string) ([]*Account, error) {
 		return nil, err
 	}
 	defer resp.Body.Close()
-	totalAccounts := []*Account{}
-	var accounts *AccountsResponse
+	totalAccounts := []*models.Account{}
+	var accounts *models.AccountsResponse
 	if err := json.NewDecoder(resp.Body).Decode(&accounts); err != nil {
 		return nil, err
 	}
@@ -176,8 +164,8 @@ func loadAccounts(cfg *config.Config, nextToken ...string) ([]*Account, error) {
 }
 
 // filterAccounts filters out unwanted accounts
-func filterAccounts(accounts []*Account, ttl int) []*Account {
-	filtered := []*Account{}
+func filterAccounts(accounts []*models.Account, ttl int) []*models.Account {
+	filtered := []*models.Account{}
 	for _, account := range accounts {
 		if account.IsGuest || account.Admin || account.Deactivated || account.Locked {
 			continue
@@ -213,7 +201,7 @@ func filterByTS(ts int64, ttl int) bool {
 }
 
 // deleteAccount deletes the account from the Synapse server
-func deleteAccount(cfg *config.Config, account *Account) error {
+func deleteAccount(cfg *config.Config, account *models.Account) error {
 	uri := fmt.Sprintf("%s/_synapse/admin/v1/deactivate/%s", cfg.Host, account.Name)
 	req, err := newRequest(http.MethodPost, uri, cfg.Token, strings.NewReader(`{"erase": true}`))
 	if err != nil {
@@ -228,7 +216,7 @@ func deleteAccount(cfg *config.Config, account *Account) error {
 }
 
 // deleteMedia deletes the media of the account from the Synapse server
-func deleteMedia(cfg *config.Config, account *Account) (int, error) {
+func deleteMedia(cfg *config.Config, account *models.Account) (int, error) {
 	uri := fmt.Sprintf("%s/_synapse/admin/v1/users/%s/media", cfg.Host, account.Name)
 	req, err := newRequest(http.MethodDelete, uri, cfg.Token)
 	if err != nil {
@@ -239,7 +227,7 @@ func deleteMedia(cfg *config.Config, account *Account) (int, error) {
 		return 0, err
 	}
 	defer resp.Body.Close()
-	var deletedMedia *DeletedMediaResponse
+	var deletedMedia *models.DeletedMediaResponse
 	if err := json.NewDecoder(resp.Body).Decode(&deletedMedia); err != nil {
 		return 0, err
 	}
@@ -247,7 +235,7 @@ func deleteMedia(cfg *config.Config, account *Account) (int, error) {
 }
 
 // dryRun is a helper function that prints the accounts that would be erased, alongside with the days since registration
-func dryRun(accounts []*Account) {
+func dryRun(accounts []*models.Account) {
 	sort.Slice(accounts, func(i, j int) bool {
 		return accounts[i].CreationTs < accounts[j].CreationTs
 	})

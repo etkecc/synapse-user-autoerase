@@ -28,7 +28,13 @@ test packages="./...":
 
 # run app
 run:
+    @echo "[WARNING] you may want to 'just dryrun' first"
     @go run ./cmd
+
+# run app in dryrun mode
+dryrun:
+    @go run ./cmd -dryrun
+
 
 # build app
 build:
