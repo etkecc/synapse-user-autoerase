@@ -4,7 +4,7 @@ default:
 
 # update go deps
 update *flags:
-    go get {{ flags }} ./cmd
+    go get {{ flags }} ./cmd/suae
     go mod tidy
     go mod vendor
 
@@ -26,16 +26,19 @@ test packages="./...":
     @go tool cover -func=cover.out
     -@rm -f cover.out
 
+# dryrun app
+dryrun:
+    @go run ./cmd/suae -dryrun
+
 # run app
 run:
     @echo "[WARNING] you may want to 'just dryrun' first"
-    @go run ./cmd
+    @go run ./cmd/suae
 
-# run app in dryrun mode
-dryrun:
-    @go run ./cmd -dryrun
-
+# install app
+install:
+    @CGO_ENABLED=0 go install -ldflags '-extldflags "-static"' -tags timetzdata,goolm -v ./cmd/suae
 
 # build app
 build:
-    CGO_ENABLED=0 go build -ldflags '-extldflags "-static"' -tags timetzdata,goolm -v -o suae ./cmd
+    @CGO_ENABLED=0 go build -ldflags '-extldflags "-static"' -tags timetzdata,goolm -v ./cmd/suae

@@ -4,8 +4,9 @@ WORKDIR /app
 COPY . .
 RUN just build
 
-FROM ghcr.io/etkecc/base/app
+FROM scratch
 
+COPY --from=builder /etc/ssl/certs/ca-certificates.crt /etc/ssl/certs/
 COPY --from=builder /app/suae /bin/suae
 
 USER app

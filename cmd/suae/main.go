@@ -37,6 +37,7 @@ var omitPrefixes = []string{
 	"@hookshot:",
 	"@instagram_",
 	"@instagrambot:",
+	"@linkedin_",
 	"@linkedinbot:",
 	"@messenger_",
 	"@messengerbot:",
