@@ -78,6 +78,9 @@ func main() {
 	}
 
 	if dryRunMode {
+		log.Println("filtered", len(accounts), "accounts, adding media count...")
+		addMediaCount(cfg, accounts)
+
 		dryRun(accounts)
 		return
 	}
@@ -201,6 +204,18 @@ func filterByTS(ts int64, ttl int) bool {
 	return time.Since(timestamp).Abs().Hours() <= float64(ttl*24)
 }
 
+// addMediaCount adds the number of uploaded media files to the accounts
+func addMediaCount(cfg *config.Config, accounts []*models.Account) {
+	for _, account := range accounts {
+		mediaCount, err := getMediaCount(cfg, account.Name)
+		if err != nil {
+			log.Println("ERROR: failed to get media count for", account.Name, err)
+			continue
+		}
+		account.UploadedMedia = mediaCount
+	}
+}
+
 // deleteAccount deletes the account from the Synapse server
 func deleteAccount(cfg *config.Config, account *models.Account) error {
 	uri := fmt.Sprintf("%s/_synapse/admin/v1/deactivate/%s", cfg.Host, account.Name)
@@ -235,6 +250,26 @@ func deleteMedia(cfg *config.Config, account *models.Account) (int, error) {
 	return deletedMedia.Total, nil
 }
 
+// getMediaCount returns the number of media files that the account has uploaded
+// using GET /_synapse/admin/v1/users/<user_id>/media
+func getMediaCount(cfg *config.Config, mxid string) (int64, error) {
+	uri := fmt.Sprintf("%s/_synapse/admin/v1/users/%s/media?limit=1", cfg.Host, mxid)
+	req, err := newRequest(http.MethodGet, uri, cfg.Token)
+	if err != nil {
+		return 0, err
+	}
+	resp, err := http.DefaultClient.Do(req)
+	if err != nil {
+		return 0, err
+	}
+	defer resp.Body.Close()
+	var media *models.MediaResponse
+	if err := json.NewDecoder(resp.Body).Decode(&media); err != nil {
+		return 0, err
+	}
+	return media.Total, nil
+}
+
 // dryRun is a helper function that prints the accounts that would be erased, alongside with the days since registration
 func dryRun(accounts []*models.Account) {
 	sort.Slice(accounts, func(i, j int) bool {
@@ -243,7 +278,7 @@ func dryRun(accounts []*models.Account) {
 	log.Println(len(accounts), "users left, printing...")
 	for _, account := range accounts {
 		registeredAt := time.Unix(0, account.CreationTs*int64(time.Millisecond))
-		log.Println(account.Name, "registered", int(time.Since(registeredAt).Hours()/24), "days ago")
+		log.Println(account.Name, "registered", int(time.Since(registeredAt).Hours()/24), "days ago", "uploaded", account.UploadedMedia, "media")
 	}
 	log.Println("To remove the accounts, set the environment variable SUAE_DRYRUN to false")
 }
