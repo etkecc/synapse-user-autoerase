@@ -1,6 +1,6 @@
 # Synapse User Auto Eraser
 
-This is a simple script that will erase users and their media from a Synapse server based on specific criteria:
+This is a simple script that will erase users, their media, and redact all their events from a Synapse server based on specific criteria:
 
 - not an admin
 - not a guest

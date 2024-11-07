@@ -22,6 +22,9 @@ const UserAgent = "Synapse User Auto Erase (library; +https://github.com/etkecc/
 // it takes the value of the environment variable `SUAE_DRYRUN` and can be overridden by the `-dryrun` flag
 var dryRunMode bool
 
+// redactMessagesBody is the JSON body that is used to redact all messages sent by the account
+var redactMessagesBody = `{"rooms":[]}`
+
 // omitPrefixes is a list of prefixes that should be omitted/ignored from the list of users
 // this list contains most of the common prefixes that are used by bots and bridges.
 // You may extend it by adding more prefixes to the env variable `SUAE_PREFIXES`.
@@ -95,6 +98,9 @@ func main() {
 		if err != nil {
 			log.Println("ERROR: failed to remove media", err)
 		}
+		if err := deleteMessages(cfg, account); err != nil {
+			log.Println("ERROR: failed to redact messages", err)
+		}
 		registeredAt := time.Unix(0, account.CreationTs*int64(time.Millisecond))
 		log.Printf("removed %s (registered %d days ago), deleted %d media", account.Name, int(time.Since(registeredAt).Hours()/24), deletedMedia)
 	}
@@ -139,7 +145,7 @@ func loadAccounts(cfg *config.Config, nextToken ...string) ([]*models.Account, e
 	if len(nextToken) > 0 {
 		from = nextToken[0]
 	}
-	uri := fmt.Sprintf("%s/_synapse/admin/v2/users?from=%s&limit=1000&guests=false&admins=false&&deactivated=false&order_by=creation_ts&dir=b", cfg.Host, from)
+	uri := fmt.Sprintf("%s/_synapse/admin/v2/users?from=%s&limit=1000&guests=false&admins=false&deactivated=false&order_by=creation_ts&dir=b", cfg.Host, from)
 	req, err := newRequest(http.MethodGet, uri, cfg.Token)
 	if err != nil {
 		return nil, err
@@ -248,6 +254,26 @@ func deleteMedia(cfg *config.Config, account *models.Account) (int, error) {
 		return 0, err
 	}
 	return deletedMedia.Total, nil
+}
+
+// deleteMessages redacts all events sent by the account from the Synapse server
+func deleteMessages(cfg *config.Config, account *models.Account) error {
+	uri := fmt.Sprintf("%s/_synapse/admin/v1/user/%s/redact", cfg.Host, account.Name)
+	req, err := newRequest(http.MethodPost, uri, cfg.Token, strings.NewReader(redactMessagesBody))
+	if err != nil {
+		return err
+	}
+	resp, err := http.DefaultClient.Do(req)
+	if err != nil {
+		return err
+	}
+	defer resp.Body.Close()
+	if resp.StatusCode != http.StatusOK {
+		body, _ := io.ReadAll(resp.Body) //nolint:errcheck // ignore error
+		return fmt.Errorf("failed to redact messages: %s", body)
+	}
+
+	return nil
 }
 
 // getMediaCount returns the number of media files that the account has uploaded
