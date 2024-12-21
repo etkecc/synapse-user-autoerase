@@ -22,6 +22,10 @@ const UserAgent = "Synapse User Auto Erase (library; +https://github.com/etkecc/
 // it takes the value of the environment variable `SUAE_DRYRUN` and can be overridden by the `-dryrun` flag
 var dryRunMode bool
 
+// redactMode is a flag that indicates whether the script should redact all messages sent by the account
+// it takes the value of the environment variable `SUAE_REDACT` and can be overridden by the `-redact` flag
+var redactMode bool
+
 // redactMessagesBody is the JSON body that is used to redact all messages sent by the account
 var redactMessagesBody = `{"rooms":[]}`
 
@@ -63,7 +67,9 @@ var omitPrefixes = []string{
 func main() {
 	cfg := loadConfig()
 	dryRunMode = cfg.DryRun
+	redactMode = cfg.Redact
 	flag.BoolVar(&dryRunMode, "dryrun", dryRunMode, "dry run mode (override the SUAE_DRYRUN environment variable)")
+	flag.BoolVar(&redactMode, "redact", redactMode, "redact messages (override the SUAE_REDACT environment variable)")
 	flag.Parse()
 	if dryRunMode {
 		log.Println("running in dry run mode")
@@ -98,8 +104,10 @@ func main() {
 		if err != nil {
 			log.Println("ERROR: failed to remove media", err)
 		}
-		if err := deleteMessages(cfg, account); err != nil {
-			log.Println("ERROR: failed to redact messages", err)
+		if redactMode {
+			if err := deleteMessages(cfg, account); err != nil {
+				log.Println("ERROR: failed to redact messages", err)
+			}
 		}
 		registeredAt := time.Unix(0, account.CreationTs*int64(time.Millisecond))
 		log.Printf("removed %s (registered %d days ago), deleted %d media", account.Name, int(time.Since(registeredAt).Hours()/24), deletedMedia)

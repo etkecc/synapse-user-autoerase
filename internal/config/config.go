@@ -9,6 +9,7 @@ type Config struct {
 	Host     string   // Synapse host, e.g. "https://matrix.your-server.com" (without trailing slash)
 	Token    string   // Synapse homeserver admin token
 	DryRun   bool     // If true, no user will be erased
+	Redact   bool     // If true, all messages sent by the user will be redacted
 	Prefixes []string // Prefixes to omit/ignore
 	TTL      int      // Time to live in days. After that time the user will be erased
 }
