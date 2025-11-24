@@ -1,6 +1,6 @@
 package config
 
-import "gitlab.com/etke.cc/go/env"
+import "github.com/etkecc/go-env"
 
 const prefix = "suae" // Synapse User Auto Erase
 

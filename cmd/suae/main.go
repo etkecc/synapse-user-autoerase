@@ -33,6 +33,8 @@ var redactMessagesBody = `{"rooms":[]}`
 // this list contains most of the common prefixes that are used by bots and bridges.
 // You may extend it by adding more prefixes to the env variable `SUAE_PREFIXES`.
 var omitPrefixes = []string{
+	"@bluesky_",
+	"@blueskybot:",
 	"@discord_",
 	"@discordbot:",
 	"@emailbot:",
@@ -51,9 +53,10 @@ var omitPrefixes = []string{
 	"@reminder:",
 	"@signal_",
 	"@signalbot:",
-	"@skypebridgebot:",
 	"@slack_",
 	"@slackbot:",
+	"@steam_",
+	"@steambot:",
 	"@telegram_",
 	"@telegrambot:",
 	"@twitter_",
@@ -62,6 +65,8 @@ var omitPrefixes = []string{
 	"@wechatbot:",
 	"@whatsapp_",
 	"@whatsappbot:",
+	"@zulip_",
+	"@zulipbot:",
 }
 
 func main() {

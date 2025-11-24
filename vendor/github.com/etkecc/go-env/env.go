@@ -5,7 +5,7 @@ import (
 	"strconv"
 	"strings"
 
-	"gitlab.com/etke.cc/go/env/dotenv"
+	"github.com/etkecc/go-env/dotenv"
 )
 
 var envprefix string
