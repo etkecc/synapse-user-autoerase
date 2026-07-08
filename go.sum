@@ -1,2 +1,4 @@
 github.com/etkecc/go-env v1.2.1 h1:b/mIa8D1d9hc3rI8h5bEtBHsnKkBZ6UbmYPog3QIPTU=
 github.com/etkecc/go-env v1.2.1/go.mod h1:yTs1DWEsllAZYA417r4V+OmMuYinGXtBzKkLGNvCv5c=
+github.com/etkecc/go-kit v1.12.3 h1:iexjBrOw+WxuxAmpcrdScTlr0QGZKm4xvLGTeaXUjmc=
+github.com/etkecc/go-kit v1.12.3/go.mod h1:Mj5wxe1ntD+yxAxxozIb/F9ns4sLEeRTzHjFiNdNP9g=

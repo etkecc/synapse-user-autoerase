@@ -11,12 +11,16 @@ import (
 	"strings"
 	"time"
 
+	"github.com/etkecc/go-kit/httpclient"
 	"github.com/etkecc/synapse-user-autoerase/internal/config"
 	"github.com/etkecc/synapse-user-autoerase/internal/models"
 )
 
 // UserAgent is the user agent that is used for the HTTP requests
 const UserAgent = "Synapse User Auto Erase (library; +https://github.com/etkecc/synapse-user-autoerase)"
+
+// httpClient is the pooled client for all requests to cfg.Host
+var httpClient = httpclient.NewSingleHost()
 
 // dryRunMode is a flag that indicates whether the script should only print the accounts that would be erased
 // it takes the value of the environment variable `SUAE_DRYRUN` and can be overridden by the `-dryrun` flag
@@ -163,7 +167,7 @@ func loadAccounts(cfg *config.Config, nextToken ...string) ([]*models.Account, e
 	if err != nil {
 		return nil, err
 	}
-	resp, err := http.DefaultClient.Do(req)
+	resp, err := httpClient.Do(req)
 	if err != nil {
 		return nil, err
 	}
@@ -242,7 +246,7 @@ func deleteAccount(cfg *config.Config, account *models.Account) error {
 	if err != nil {
 		return err
 	}
-	resp, err := http.DefaultClient.Do(req)
+	resp, err := httpClient.Do(req)
 	if err != nil {
 		return err
 	}
@@ -257,7 +261,7 @@ func deleteMedia(cfg *config.Config, account *models.Account) (int, error) {
 	if err != nil {
 		return 0, err
 	}
-	resp, err := http.DefaultClient.Do(req)
+	resp, err := httpClient.Do(req)
 	if err != nil {
 		return 0, err
 	}
@@ -276,7 +280,7 @@ func deleteMessages(cfg *config.Config, account *models.Account) error {
 	if err != nil {
 		return err
 	}
-	resp, err := http.DefaultClient.Do(req)
+	resp, err := httpClient.Do(req)
 	if err != nil {
 		return err
 	}
@@ -297,7 +301,7 @@ func getMediaCount(cfg *config.Config, mxid string) (int64, error) {
 	if err != nil {
 		return 0, err
 	}
-	resp, err := http.DefaultClient.Do(req)
+	resp, err := httpClient.Do(req)
 	if err != nil {
 		return 0, err
 	}

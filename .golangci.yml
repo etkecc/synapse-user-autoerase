@@ -4,6 +4,7 @@ run:
   modules-download-mode: readonly
   issues-exit-code: 1
   tests: true
+  allow-parallel-runners: true
 output:
   formats:
     text:
@@ -109,11 +110,17 @@ linters:
           - staticcheck
         text: 'SA9003:'
       - linters:
+          - govet
+        text: 'cannot inline: type parameter inference is not yet supported'
+      - linters:
           - lll
         source: '^//go:generate '
       - linters:
           - revive
         text: returns unexported type
+      - linters:
+          - revive
+        text: 'var-naming: avoid meaningless package names'
     paths:
       - mocks
       - third_party$
