@@ -22,20 +22,16 @@ const UserAgent = "Synapse User Auto Erase (library; +https://github.com/etkecc/
 // httpClient is the pooled client for all requests to cfg.Host
 var httpClient = httpclient.NewSingleHost()
 
-// dryRunMode is a flag that indicates whether the script should only print the accounts that would be erased
-// it takes the value of the environment variable `SUAE_DRYRUN` and can be overridden by the `-dryrun` flag
+// dryRunMode: only print the accounts that would be erased; from SUAE_DRYRUN, overridable via -dryrun.
 var dryRunMode bool
 
-// redactMode is a flag that indicates whether the script should redact all messages sent by the account
-// it takes the value of the environment variable `SUAE_REDACT` and can be overridden by the `-redact` flag
+// redactMode: redact all messages sent by the account; from SUAE_REDACT, overridable via -redact.
 var redactMode bool
 
 // redactMessagesBody is the JSON body that is used to redact all messages sent by the account
 var redactMessagesBody = `{"rooms":[]}`
 
-// omitPrefixes is a list of prefixes that should be omitted/ignored from the list of users
-// this list contains most of the common prefixes that are used by bots and bridges.
-// You may extend it by adding more prefixes to the env variable `SUAE_PREFIXES`.
+// omitPrefixes lists common bot/bridge prefixes to skip; extend via the SUAE_PREFIXES env variable.
 var omitPrefixes = []string{
 	"@bluesky_",
 	"@blueskybot:",
@@ -155,8 +151,7 @@ func newRequest(method, uri, token string, optionalBody ...io.Reader) (*http.Req
 	return req, nil
 }
 
-// loadAccounts recursively loads all accounts from the Synapse server,
-// except for guests, admins, deactivated and locked accounts.
+// loadAccounts recursively loads all accounts from Synapse, except guests, admins, deactivated and locked ones.
 func loadAccounts(cfg *config.Config, nextToken ...string) ([]*models.Account, error) {
 	from := "0" // default
 	if len(nextToken) > 0 {
@@ -293,8 +288,7 @@ func deleteMessages(cfg *config.Config, account *models.Account) error {
 	return nil
 }
 
-// getMediaCount returns the number of media files that the account has uploaded
-// using GET /_synapse/admin/v1/users/<user_id>/media
+// getMediaCount returns the media count for the account (GET /_synapse/admin/v1/users/<user_id>/media)
 func getMediaCount(cfg *config.Config, mxid string) (int64, error) {
 	uri := fmt.Sprintf("%s/_synapse/admin/v1/users/%s/media?limit=1", cfg.Host, mxid)
 	req, err := newRequest(http.MethodGet, uri, cfg.Token)

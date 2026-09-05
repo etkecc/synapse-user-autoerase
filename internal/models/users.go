@@ -1,7 +1,6 @@
 package models
 
-// Account is a struct that holds the information about a user account,
-// note that the included fields are only the ones that are needed for this application.
+// Account holds a user account's information; only fields needed by this application are included.
 type Account struct {
 	Name          string `json:"name"`
 	IsGuest       bool   `json:"is_guest"`

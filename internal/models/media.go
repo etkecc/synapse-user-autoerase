@@ -1,13 +1,11 @@
 package models
 
-// DeletedMediaResponse is a struct that holds the response from the Synapse server,
-// note that the included fields are only the ones that are needed for this application.
+// DeletedMediaResponse holds the Synapse response; only fields needed by this application are included.
 type DeletedMediaResponse struct {
 	Total int `json:"total"`
 }
 
-// MediaResponse is a struct that holds the response from the Synapse server,
-// note that the included fields are only the ones that are needed for this application.
+// MediaResponse holds the Synapse response; only fields needed by this application are included.
 type MediaResponse struct {
 	Total int64 `json:"total"`
 }
