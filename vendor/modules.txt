@@ -2,7 +2,7 @@
 ## explicit; go 1.18
 github.com/etkecc/go-env
 github.com/etkecc/go-env/dotenv
-# github.com/etkecc/go-kit v1.12.3
+# github.com/etkecc/go-kit v1.12.5
 ## explicit; go 1.26
 github.com/etkecc/go-kit/httpclient
 github.com/etkecc/go-kit/retry
