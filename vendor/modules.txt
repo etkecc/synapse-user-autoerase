@@ -1,7 +1,7 @@
-# github.com/etkecc/go-env v1.2.1
-## explicit; go 1.18
+# github.com/etkecc/go-env v1.3.1
+## explicit; go 1.26
 github.com/etkecc/go-env
-github.com/etkecc/go-env/dotenv
+github.com/etkecc/go-env/envfile
 # github.com/etkecc/go-kit v1.12.3
 ## explicit; go 1.26
 github.com/etkecc/go-kit/httpclient
